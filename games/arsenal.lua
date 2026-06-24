@@ -1,66 +1,90 @@
+--[==[
+    ZEE HUB - MATCHA EDITION
+    =======================
+    A wide, aesthetic Matcha Green Dev Panel for Roblox.
+    Features: Aim Assist, ESP, Team/Wall Check.
+    Executor: Vortex/Synapse/Studio Compatible.
+    Status: Safe & Optimized.
+]==]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui") -- Menggunakan CoreGui agar aman saat reset
 
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Mouse = LP:GetMouse()
 
----------------- SETTINGS ----------------
+---------------- SETTINGS & STATE ----------------
+-- Default state untuk toggle
 local AimEnabled = false
 local ESPEnabled = false
 local TeamCheck = true
 local WallCheck = true
-local FOV = 180
-local Smoothness = 0.15
+local FOV = 180 -- Field of View untuk deteksi Aim
+local Smoothness = 0.15 -- Kehalusan gerakan kamera (Lerp)
+
+-- Skema Warna Matcha Green (Estetis)
+local MatchaColor = {
+    Header = Color3.fromRGB(120, 160, 90), -- Hijau Matcha Header
+    Background = Color3.fromRGB(20, 20, 30), -- Latar Belakang Gelap
+    ButtonOn = Color3.fromRGB(65, 110, 65), -- Hijau saat Aktif
+    ButtonOff = Color3.fromRGB(40, 40, 55), -- Abu Gelap saat Mati
+    Text = Color3.fromRGB(255, 255, 255) -- Putih Teks
+}
 
 ---------------- UI MAKER (WIDE VERSION) ----------------
-local CoreGui = game:GetService("CoreGui")
-local ExistingGui = CoreGui:FindFirstChild("DevMenuV2")
+
+-- Cek dan bersihkan UI lama jika ada
+local ExistingGui = CoreGui:FindFirstChild("ZeeHub_Matcha_V2")
 if ExistingGui then ExistingGui:Destroy() end
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "DevMenuV2"
+gui.Name = "ZeeHub_Matcha_V2"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
--- UKURAN DIUBAH LEBIH LEBAR (Lebar: 550, Tinggi: 160)
+-- BINGKAI UTAMA (LEBAR 550x160)
 local frame = Instance.new("Frame")
 frame.Parent = gui
 frame.Size = UDim2.new(0, 550, 0, 160)
-frame.Position = UDim2.new(0.5, -275, 0.5, -80)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+frame.Position = UDim2.new(0.5, -275, 0.5, -80) -- Center on screen
+frame.BackgroundColor3 = MatchaColor.Background
 frame.BorderSizePixel = 0
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.CornerRadius = UDim.new(0, 8) -- Sudut melengkung halus
 frameCorner.Parent = frame
 
--- TITLE BAR LEBIH LEBAR
+-- HEADER BAR (MATCHING HEADER)
 local title = Instance.new("TextLabel")
 title.Parent = frame
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Text = "ZEE HUB — DEV PANEL"
 title.TextSize = 16
-title.Font = Enum.Font.GothamBold
-title.BackgroundColor3 = Color3.fromRGB(219, 112, 147) -- Pink Aesthetic
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold -- Font modern tebal
+title.BackgroundColor3 = MatchaColor.Header
+title.TextColor3 = MatchaColor.Text
 
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = title
 
--- FUNGSI MEMBUAT TOMBOL BERJEJER KE SAMPING
+-- FUNGSI MEMBUAT TOMBOL (GRID LAYOUT 2x2)
+-- @param text: Teks pada tombol
+-- @param x: Posisi X absolut (piksel)
+-- @param y: Posisi Y absolut (piksel)
 local function createButton(text, x, y)
     local b = Instance.new("TextButton")
     b.Parent = frame
-    b.Size = UDim2.new(0, 240, 0, 38) -- Lebar tombol disesuaikan
+    b.Size = UDim2.new(0, 240, 0, 38) -- Lebar tombol disesuaikan untuk 2 kolom
     b.Position = UDim2.new(0, x, 0, y)
     b.Text = text
-    b.Font = Enum.Font.GothamMedium
+    b.Font = Enum.Font.GothamMedium -- Font modern sedang
     b.TextSize = 13
-    b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
-    b.TextColor3 = Color3.new(1, 1, 1)
+    b.BackgroundColor3 = MatchaColor.ButtonOff
+    b.TextColor3 = MatchaColor.Text
     b.BorderSizePixel = 0
     
     local btnCorner = Instance.new("UICorner")
@@ -69,7 +93,7 @@ local function createButton(text, x, y)
     return b
 end
 
--- Posisi X dan Y diatur berpasangan kiri-kanan agar rapi
+-- Posisi X dan Y diatur berpasangan kiri-kanan agar berjejer (Grid)
 local aimBtn = createButton("Aim Assist: OFF", 25, 55)       -- Baris 1 Kiri
 local espBtn = createButton("Player Highlight: OFF", 285, 55) -- Baris 1 Kanan
 local teamBtn = createButton("Team Check: ON", 25, 105)       -- Baris 2 Kiri
@@ -107,6 +131,8 @@ UIS.InputChanged:Connect(function(input)
 end)
 
 ---------------- MECHANICS ----------------
+
+-- 1. Deteksi Tim (Aman untuk game berbasis tim)
 local function sameTeam(player)
     if not TeamCheck then return false end
     if LP.Team and player.Team then
@@ -115,10 +141,12 @@ local function sameTeam(player)
     return false
 end
 
+-- 2. Raycast (Untuk memastikan target tidak terhalang objek/dinding)
 local function canSee(targetPart)
     if not WallCheck then return true end
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
+    -- Mengabaikan karakter sendiri dan karakter target saat melakukan pengecekan raycast
     params.FilterDescendantsInstances = {LP.Character, targetPart.Parent}
 
     local origin = Camera.CFrame.Position
@@ -127,6 +155,7 @@ local function canSee(targetPart)
     return result == nil
 end
 
+-- 3. Mencari Target Terdekat dari Kursor
 local function getClosestTarget()
     local closest = nil
     local shortest = FOV
@@ -135,6 +164,7 @@ local function getClosestTarget()
         if player ~= LP and player.Character and player.Character:FindFirstChild("Head") then
             if sameTeam(player) then continue end
 
+            -- Menggunakan HumanoidRootPart atau Head sebagai tumpuan mekanik kamera
             local head = player.Character.Head
             local screenPos, visible = Camera:WorldToViewportPoint(head.Position)
 
@@ -150,6 +180,9 @@ local function getClosestTarget()
     return closest
 end
 
+---------------- LOOP SYSTEMS ----------------
+
+-- Kamera otomatis bergerak halus (Lerp) jika Aim Assist aktif (Biasa digunakan untuk mekanik Lock-On)
 RunService.RenderStepped:Connect(function()
     if AimEnabled then
         local target = getClosestTarget()
@@ -160,15 +193,16 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+-- Sistem Highlight Pemain (Bawaan Roblox) untuk membedakan pemain/objek (Matcha Color)
 local function updateHighlight()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LP and player.Character then
-            local existing = player.Character:FindFirstChild("GameHighlight")
+            local existing = player.Character:FindFirstChild("Zee_Highlight")
             if ESPEnabled then
                 if not existing then
                     local hl = Instance.new("Highlight")
-                    hl.Name = "GameHighlight"
-                    hl.FillColor = Color3.fromRGB(219, 112, 147)
+                    hl.Name = "Zee_Highlight"
+                    hl.FillColor = MatchaColor.Header -- Menggunakan warna Matcha Header
                     hl.FillTransparency = 0.5
                     hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                     hl.OutlineTransparency = 0
@@ -181,6 +215,7 @@ local function updateHighlight()
     end
 end
 
+-- Menangani pemain baru yang masuk ke dalam room game
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         task.wait(1)
@@ -192,24 +227,31 @@ end)
 aimBtn.MouseButton1Click:Connect(function()
     AimEnabled = not AimEnabled
     aimBtn.Text = AimEnabled and "Aim Assist: ON" or "Aim Assist: OFF"
-    aimBtn.BackgroundColor3 = AimEnabled and Color3.fromRGB(65, 90, 65) or Color3.fromRGB(40, 40, 55)
+    -- Perubahan warna tombol saat Aktif/Mati (Matcha)
+    aimBtn.BackgroundColor3 = AimEnabled and MatchaColor.ButtonOn or MatchaColor.ButtonOff
 end)
 
 espBtn.MouseButton1Click:Connect(function()
     ESPEnabled = not ESPEnabled
     espBtn.Text = ESPEnabled and "Player Highlight: ON" or "Player Highlight: OFF"
-    espBtn.BackgroundColor3 = ESPEnabled and Color3.fromRGB(65, 90, 65) or Color3.fromRGB(40, 40, 55)
-    updateHighlight()
+    -- Perubahan warna tombol saat Aktif/Mati (Matcha)
+    espBtn.BackgroundColor3 = ESPEnabled and MatchaColor.ButtonOn or MatchaColor.ButtonOff
+    updateHighlight() -- Update langsung saat tombol diklik
 end)
 
 teamBtn.MouseButton1Click:Connect(function()
     TeamCheck = not TeamCheck
     teamBtn.Text = TeamCheck and "Team Check: ON" or "Team Check: OFF"
-    teamBtn.BackgroundColor3 = TeamCheck and Color3.fromRGB(40, 40, 55) or Color3.fromRGB(90, 40, 40)
+    -- Team Check On = Default, Team Check Off = Merah (Kritis)
+    teamBtn.BackgroundColor3 = TeamCheck and MatchaColor.ButtonOff or Color3.fromRGB(90, 40, 40)
 end)
 
 wallBtn.MouseButton1Click:Connect(function()
     WallCheck = not WallCheck
     wallBtn.Text = WallCheck and "Wall Check: ON" or "Wall Check: OFF"
-    wallBtn.BackgroundColor3 = WallCheck and Color3.fromRGB(40, 40, 55) or Color3.fromRGB(90, 40, 40)
+    -- Wall Check On = Default, Wall Check Off = Merah (Kritis)
+    wallBtn.BackgroundColor3 = WallCheck and MatchaColor.ButtonOff or Color3.fromRGB(90, 40, 40)
 end)
+
+-- Pesan konfirmasi di console
+warn("ZEE HUB - Matcha Edition Loaded.")

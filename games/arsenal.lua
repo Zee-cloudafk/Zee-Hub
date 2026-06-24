@@ -14,25 +14,41 @@ local WallCheck = true
 local FOV = 180
 local Smoothness = 0.15
 
----------------- UI REFERENCES ----------------
--- Disarankan membuat UI langsung via Explorer Studio, 
--- namun ini adalah kode pembuat UI otomatis agar langsung berjalan:
+---------------- UI MAKER (VORTEX/EXECUTOR COMPATIBLE) ----------------
+-- Mencari CoreGui agar aman dari reset saat karakter mati
+local CoreGui = game:GetService("CoreGui")
+local ExistingGui = CoreGui:FindFirstChild("DevMenuV2")
+if ExistingGui then ExistingGui:Destroy() end
 
-local gui = script.Parent -- Mengikuti parent tempat LocalScript berada
+local gui = Instance.new("ScreenGui")
+gui.Name = "DevMenuV2"
+gui.ResetOnSpawn = false
+gui.Parent = CoreGui
+
 local frame = Instance.new("Frame")
 frame.Parent = gui
 frame.Size = UDim2.new(0, 320, 0, 250)
 frame.Position = UDim2.new(0.5, -160, 0.5, -125)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35) -- Warna gelap aesthetic
 frame.BorderSizePixel = 0
+
+-- Menambahkan corner melengkung halus pada UI
+local frameCorner = Instance.new("UICorner")
+frameCorner.CornerRadius = UDim.new(0, 8)
+frameCorner.Parent = frame
 
 local title = Instance.new("TextLabel")
 title.Parent = frame
 title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "GAME DEV PANEL"
-title.TextScaled = true
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 80)
-title.TextColor3 = Color3.new(1, 1, 1)
+title.Text = "ZEE HUB — DEV PANEL"
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+title.BackgroundColor3 = Color3.fromRGB(219, 112, 147) -- Warna Pink Aksen (Aesthetic)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.Parent = title
 
 local function createButton(text, y)
     local b = Instance.new("TextButton")
@@ -40,9 +56,15 @@ local function createButton(text, y)
     b.Size = UDim2.new(0, 260, 0, 35)
     b.Position = UDim2.new(0, 30, 0, y)
     b.Text = text
-    b.BackgroundColor3 = Color3.fromRGB(55, 55, 70)
+    b.Font = Enum.Font.Gotham
+    b.TextSize = 14
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     b.TextColor3 = Color3.new(1, 1, 1)
     b.BorderSizePixel = 0
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = b
     return b
 end
 
@@ -82,9 +104,7 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
----------------- MECHANICS FUNCTIONS ----------------
-
--- 1. Deteksi Tim (Aman untuk game berbasis tim)
+---------------- MECHANICS ----------------
 local function sameTeam(player)
     if not TeamCheck then return false end
     if LP.Team and player.Team then
@@ -93,41 +113,34 @@ local function sameTeam(player)
     return false
 end
 
--- 2. Raycast (Untuk memastikan target tidak terhalang objek/dinding)
 local function canSee(targetPart)
     if not WallCheck then return true end
-
     local params = RaycastParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
-    -- Mengabaikan karakter sendiri dan karakter target saat melakukan pengecekan raycast
     params.FilterDescendantsInstances = {LP.Character, targetPart.Parent}
 
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
     local result = workspace:Raycast(origin, direction, params)
-
     return result == nil
 end
 
--- 3. Mencari Target Terdekat dari Kursor
 local function getClosestTarget()
     local closest = nil
     local shortest = FOV
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if player ~= LP and player.Character and player.Character:FindFirstChild("Head") then
             if sameTeam(player) then continue end
 
-            -- Menggunakan HumanoidRootPart atau Head sebagai tumpuan mekanik kamera
-            local targetPart = player.Character:FindFirstChild("Head") or player.Character.HumanoidRootPart
-            local screenPos, visible = Camera:WorldToViewportPoint(targetPart.Position)
+            local head = player.Character.Head
+            local screenPos, visible = Camera:WorldToViewportPoint(head.Position)
 
-            if visible and canSee(targetPart) then
+            if visible and canSee(head) then
                 local dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-
                 if dist < shortest then
                     shortest = dist
-                    closest = targetPart
+                    closest = head
                 end
             end
         end
@@ -135,9 +148,6 @@ local function getClosestTarget()
     return closest
 end
 
----------------- LOOP SYSTEMS ----------------
-
--- Kamera otomatis bergerak halus (Lerp) jika Aim Assist aktif (Biasa digunakan untuk mekanik Lock-On)
 RunService.RenderStepped:Connect(function()
     if AimEnabled then
         local target = getClosestTarget()
@@ -148,31 +158,27 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Sistem Pengonversian Highlight (Bawaan Roblox) untuk membedakan pemain/objek
 local function updateHighlight()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LP and player.Character then
             local existing = player.Character:FindFirstChild("GameHighlight")
-
             if ESPEnabled then
                 if not existing then
                     local hl = Instance.new("Highlight")
                     hl.Name = "GameHighlight"
-                    hl.FillColor = Color3.fromRGB(255, 0, 0) -- Merah untuk target
-                    hl.FillTransparency = 0.6
+                    hl.FillColor = Color3.fromRGB(219, 112, 147)
+                    hl.FillTransparency = 0.5
+                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
                     hl.OutlineTransparency = 0
                     hl.Parent = player.Character
                 end
             else
-                if existing then
-                    existing:Destroy()
-                end
+                if existing then existing:Destroy() end
             end
         end
     end
 end
 
--- Menangani pemain baru yang masuk ke dalam room game
 Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function()
         task.wait(1)
@@ -180,24 +186,28 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
----------------- BUTTON INTERACTIONS ----------------
+---------------- BUTTONS INTERACTION ----------------
 aimBtn.MouseButton1Click:Connect(function()
     AimEnabled = not AimEnabled
     aimBtn.Text = AimEnabled and "Aim Assist: ON" or "Aim Assist: OFF"
+    aimBtn.BackgroundColor3 = AimEnabled and Color3.fromRGB(65, 90, 65) or Color3.fromRGB(40, 40, 55)
 end)
 
 espBtn.MouseButton1Click:Connect(function()
     ESPEnabled = not ESPEnabled
     espBtn.Text = ESPEnabled and "Player Highlight: ON" or "Player Highlight: OFF"
+    espBtn.BackgroundColor3 = ESPEnabled and Color3.fromRGB(65, 90, 65) or Color3.fromRGB(40, 40, 55)
     updateHighlight()
 end)
 
 teamBtn.MouseButton1Click:Connect(function()
     TeamCheck = not TeamCheck
     teamBtn.Text = TeamCheck and "Team Check: ON" or "Team Check: OFF"
+    teamBtn.BackgroundColor3 = TeamCheck and Color3.fromRGB(40, 40, 55) or Color3.fromRGB(90, 40, 40)
 end)
 
 wallBtn.MouseButton1Click:Connect(function()
     WallCheck = not WallCheck
     wallBtn.Text = WallCheck and "Wall Check: ON" or "Wall Check: OFF"
+    wallBtn.BackgroundColor3 = WallCheck and Color3.fromRGB(40, 40, 55) or Color3.fromRGB(90, 40, 40)
 end)

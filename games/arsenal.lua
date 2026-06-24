@@ -14,8 +14,7 @@ local WallCheck = true
 local FOV = 180
 local Smoothness = 0.15
 
----------------- UI MAKER (VORTEX/EXECUTOR COMPATIBLE) ----------------
--- Mencari CoreGui agar aman dari reset saat karakter mati
+---------------- UI MAKER (WIDE VERSION) ----------------
 local CoreGui = game:GetService("CoreGui")
 local ExistingGui = CoreGui:FindFirstChild("DevMenuV2")
 if ExistingGui then ExistingGui:Destroy() end
@@ -25,39 +24,41 @@ gui.Name = "DevMenuV2"
 gui.ResetOnSpawn = false
 gui.Parent = CoreGui
 
+-- UKURAN DIUBAH LEBIH LEBAR (Lebar: 550, Tinggi: 160)
 local frame = Instance.new("Frame")
 frame.Parent = gui
-frame.Size = UDim2.new(0, 320, 0, 250)
-frame.Position = UDim2.new(0.5, -160, 0.5, -125)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35) -- Warna gelap aesthetic
+frame.Size = UDim2.new(0, 550, 0, 160)
+frame.Position = UDim2.new(0.5, -275, 0.5, -80)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 frame.BorderSizePixel = 0
 
--- Menambahkan corner melengkung halus pada UI
 local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 8)
 frameCorner.Parent = frame
 
+-- TITLE BAR LEBIH LEBAR
 local title = Instance.new("TextLabel")
 title.Parent = frame
 title.Size = UDim2.new(1, 0, 0, 40)
 title.Text = "ZEE HUB — DEV PANEL"
-title.TextSize = 18
+title.TextSize = 16
 title.Font = Enum.Font.GothamBold
-title.BackgroundColor3 = Color3.fromRGB(219, 112, 147) -- Warna Pink Aksen (Aesthetic)
+title.BackgroundColor3 = Color3.fromRGB(219, 112, 147) -- Pink Aesthetic
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 
 local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 8)
 titleCorner.Parent = title
 
-local function createButton(text, y)
+-- FUNGSI MEMBUAT TOMBOL BERJEJER KE SAMPING
+local function createButton(text, x, y)
     local b = Instance.new("TextButton")
     b.Parent = frame
-    b.Size = UDim2.new(0, 260, 0, 35)
-    b.Position = UDim2.new(0, 30, 0, y)
+    b.Size = UDim2.new(0, 240, 0, 38) -- Lebar tombol disesuaikan
+    b.Position = UDim2.new(0, x, 0, y)
     b.Text = text
-    b.Font = Enum.Font.Gotham
-    b.TextSize = 14
+    b.Font = Enum.Font.GothamMedium
+    b.TextSize = 13
     b.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
     b.TextColor3 = Color3.new(1, 1, 1)
     b.BorderSizePixel = 0
@@ -68,10 +69,11 @@ local function createButton(text, y)
     return b
 end
 
-local aimBtn = createButton("Aim Assist: OFF", 50)
-local espBtn = createButton("Player Highlight: OFF", 95)
-local teamBtn = createButton("Team Check: ON", 140)
-local wallBtn = createButton("Wall Check: ON", 185)
+-- Posisi X dan Y diatur berpasangan kiri-kanan agar rapi
+local aimBtn = createButton("Aim Assist: OFF", 25, 55)       -- Baris 1 Kiri
+local espBtn = createButton("Player Highlight: OFF", 285, 55) -- Baris 1 Kanan
+local teamBtn = createButton("Team Check: ON", 25, 105)       -- Baris 2 Kiri
+local wallBtn = createButton("Wall Check: ON", 285, 105)     -- Baris 2 Kanan
 
 ---------------- UI DRAGGING SYSTEM ----------------
 local dragging = false

@@ -1,11 +1,11 @@
 local getgenv = getgenv or function() return _G end
 
--- Konfigurasi Utama
+-- Konfigurasi
 getgenv().Config = {
-    AutoPlant = false,
-    AutoHarvest = false,
-    AutoBuySeed = false,
-    AutoSell = false,
+    AutoPlant = true,
+    AutoHarvest = true,
+    AutoBuySeed = true,
+    AutoSell = true,
     SeedName = "Carrot",
     LoopDelay = 0.5
 }
@@ -18,79 +18,50 @@ local LocalPlayer = game.Players.LocalPlayer
 
 local function plantSeed()
     local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
-    local closestPlot = nil
-    local shortestDist = 60 
-
+    -- Mencari semua area tanah di seluruh Workspace
     for _, obj in pairs(workspace:GetDescendants()) do
         if obj.Name == "GardenTotalArea" and obj:IsA("BasePart") then
-            local dist = (hrp.Position - obj.Position).Magnitude
-            if dist < shortestDist then
-                shortestDist = dist
-                closestPlot = obj
+            -- Jarak aman 30 stud
+            if (char.HumanoidRootPart.Position - obj.Position).Magnitude < 30 then
+                local halfX, halfZ = (obj.Size.X / 2) - 1, (obj.Size.Z / 2) - 1
+                local pos = obj.Position + Vector3.new((math.random() * 2 - 1) * halfX, 0, (math.random() * 2 - 1) * halfZ)
+                
+                local bufferStr = "\t\000" .. string.pack("<fff", pos.X, obj.Position.Y, pos.Z) .. string.char(#getgenv().Config.SeedName) .. getgenv().Config.SeedName
+                Remote:FireServer(buffer.fromstring(bufferStr), {char:FindFirstChildOfClass("Tool") or Instance.new("Tool")})
             end
         end
-    end
-
-    if closestPlot then
-        local halfX = (closestPlot.Size.X / 2) - 1.5
-        local halfZ = (closestPlot.Size.Z / 2) - 1.5
-        local randX = closestPlot.Position.X + (math.random() * 2 - 1) * halfX
-        local randZ = closestPlot.Position.Z + (math.random() * 2 - 1) * halfZ
-        
-        local coordinateBytes = string.pack("<fff", randX, closestPlot.Position.Y, randZ)
-        local nameLength = string.char(#getgenv().Config.SeedName)
-        local bufferStr = "\t\000" .. coordinateBytes .. nameLength .. getgenv().Config.SeedName
-        
-        local args = { buffer.fromstring(bufferStr), { char:FindFirstChildOfClass("Tool") or Instance.new("Tool") } }
-        Remote:FireServer(unpack(args))
     end
 end
 
 local function harvest()
-    for _, folder in pairs(workspace:GetDescendants()) do
-        if folder.Name == "Plants" then
-            for _, plant in pairs(folder:GetChildren()) do
-                local splitName = string.split(plant.Name, "_")
-                local uuid = splitName[2] 
-                if uuid then
-                    -- Mendeteksi baik Carrot (HarvestPart) maupun Tomato (Folder Fruits)
-                    local isReady = plant:FindFirstChild("HarvestPart") or (plant:FindFirstChild("Fruits") and #plant.Fruits:GetChildren() > 0)
-                    if isReady then
-                        local bufferStr = "\198\000$" .. uuid .. "\000"
-                        Remote:FireServer(buffer.fromstring(bufferStr))
-                    end
-                end
+    -- Mencari semua objek di workspace
+    for _, plant in pairs(workspace:GetDescendants()) do
+        -- Cek jika objek adalah tanaman (punya nama mengandung ID user)
+        if string.find(plant.Name, tostring(LocalPlayer.UserId)) then
+            local uuid = string.split(plant.Name, "_")[2]
+            if uuid and (plant:FindFirstChild("HarvestPart") or plant:FindFirstChild("Fruits")) then
+                Remote:FireServer(buffer.fromstring("\198\000$" .. uuid .. "\000"))
             end
         end
     end
 end
 
 local function buySeed()
-    local nameLength = string.char(#getgenv().Config.SeedName)
-    local bufferStr = "y\000" .. nameLength .. getgenv().Config.SeedName
-    Remote:FireServer(buffer.fromstring(bufferStr))
+    Remote:FireServer(buffer.fromstring("y\000" .. string.char(#getgenv().Config.SeedName) .. getgenv().Config.SeedName))
 end
 
 local function sellCrops()
     Remote:FireServer(buffer.fromstring("\171\000%"))
 end
 
---- MEMBANGUN UI ORION ---
+--- UI ORION ---
 local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/jensonhirst/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "Zee-Hub v3.0", HidePremium = false, SaveConfig = true, ConfigFolder = "ZeeHub"})
-
+local Window = OrionLib:MakeWindow({Name = "Zee-Hub Final | Grow a Garden 2", HidePremium = false, SaveConfig = true, ConfigFolder = "ZeeHub"})
 local FarmTab = Window:MakeTab({Name = "Auto Farm", Icon = "rbxassetid://4483345998", PremiumOnly = false})
 
-FarmTab:AddDropdown({
-	Name = "Pilih Benih",
-	Default = "Carrot",
-	Options = {"Carrot", "Tomato", "Wheat", "Corn", "Potato"},
-	Callback = function(Value) getgenv().Config.SeedName = Value end    
-})
-
+FarmTab:AddDropdown({Name = "Pilih Benih", Default = "Carrot", Options = {"Carrot", "Tomato", "Wheat", "Corn", "Potato"}, Callback = function(V) getgenv().Config.SeedName = V end})
 FarmTab:AddToggle({Name = "Auto Plant", Callback = function(V) getgenv().Config.AutoPlant = V end})
 FarmTab:AddToggle({Name = "Auto Harvest", Callback = function(V) getgenv().Config.AutoHarvest = V end})
 FarmTab:AddToggle({Name = "Auto Buy Seed", Callback = function(V) getgenv().Config.AutoBuySeed = V end})
@@ -98,7 +69,7 @@ FarmTab:AddToggle({Name = "Auto Sell Crops", Callback = function(V) getgenv().Co
 
 OrionLib:Init()
 
---- MAIN LOOP ---
+--- LOOPING ---
 task.spawn(function()
     while task.wait(getgenv().Config.LoopDelay) do
         if getgenv().Config.AutoSell then pcall(sellCrops) end

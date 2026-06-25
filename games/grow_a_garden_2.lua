@@ -2,10 +2,10 @@ local getgenv = getgenv or function() return _G end
 
 -- Konfigurasi Utama
 getgenv().Config = {
-    AutoPlant = false,
-    AutoHarvest = false,
-    AutoBuySeed = false,
-    AutoSell = false,
+    AutoPlant = true,
+    AutoHarvest = true,
+    AutoBuySeed = true,
+    AutoSell = true,
     SeedName = "Carrot", -- Bisa diganti misal: "Tomato", "Wheat", dll
     LoopDelay = 1
 }

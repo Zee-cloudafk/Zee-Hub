@@ -83,7 +83,7 @@ local function plantSeed()
     
     if not x then
         local closestPlot = nil
-        local shortestDist = 60 -- Maksimal jarak 60 stud agar tidak menanam di plot orang lain
+        local shortestDist = 60 -- Maksimal jarak 60 stud
         
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj.Name == "GardenTotalArea" and obj:IsA("BasePart") then
@@ -96,7 +96,6 @@ local function plantSeed()
         end
         
         if closestPlot then
-            local maxSpacing = getgenv().Config.PlantGridSpacing
             local halfX = (closestPlot.Size.X / 2) - 1
             local halfZ = (closestPlot.Size.Z / 2) - 1
             
@@ -150,6 +149,62 @@ local function sellCrops()
     Remote:FireServer(unpack(args))
 end
 
+local function collectDrops()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and (obj.Name == "Coin" or obj.Name == "Ruby" or obj.Name == "Drop" or obj.Name == "Star") then
+            obj.CFrame = hrp.CFrame
+        end
+    end
+end
+
+local function waterPlants()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not (tool and tool.Name:lower():find("can")) then
+        for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if t:IsA("Tool") and t.Name:lower():find("can") then
+                tool = t
+                break
+            end
+        end
+        if tool then
+            tool.Parent = char
+        end
+    end
+    
+    if tool and tool.Parent == char then
+        tool:Activate()
+    end
+end
+
+local function placeSprinkler()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not (tool and tool.Name:lower():find("sprinkler")) then
+        for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if t:IsA("Tool") and t.Name:lower():find("sprinkler") then
+                tool = t
+                break
+            end
+        end
+        if tool then
+            tool.Parent = char
+        end
+    end
+    
+    if tool and tool.Parent == char then
+        tool:Activate()
+    end
+end
+
 --- CUSTOM UI LIBRARY ---
 
 local ZeeHubUI = {}
@@ -171,8 +226,8 @@ function ZeeHubUI.new(title)
     -- Main Window Frame
     local main = Instance.new("Frame")
     main.Name = "MainFrame"
-    main.Size = UDim2.new(0, 700, 0, 420)
-    main.Position = UDim2.new(0.5, -350, 0.5, -210)
+    main.Size = UDim2.new(0, 680, 0, 420)
+    main.Position = UDim2.new(0.5, -340, 0.5, -210)
     main.BackgroundColor3 = theme.Background
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -189,10 +244,10 @@ function ZeeHubUI.new(title)
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Parent = main
     
-    -- Sidebar Frame (Left) - wider to support icon + text
+    -- Sidebar Frame (Left) - Narrow 50px
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, 150, 1, 0)
+    sidebar.Size = UDim2.new(0, 50, 1, 0)
     sidebar.BackgroundColor3 = theme.Sidebar
     sidebar.BorderSizePixel = 0
     sidebar.Parent = main
@@ -209,14 +264,14 @@ function ZeeHubUI.new(title)
     sbLine.BorderSizePixel = 0
     sbLine.Parent = sidebar
     
-    -- Logo "ZEE-HUB"
+    -- Logo "C" (representing clean circle or custom initial)
     local logo = Instance.new("TextLabel")
-    logo.Size = UDim2.new(1, 0, 0, 40)
-    logo.Position = UDim2.new(0, 0, 0, 10)
+    logo.Size = UDim2.new(0, 30, 0, 30)
+    logo.Position = UDim2.new(0.5, -15, 0, 10)
     logo.BackgroundTransparency = 1
-    logo.Text = "ZEE-HUB"
+    logo.Text = "Z"
     logo.Font = Enum.Font.GothamBold
-    logo.TextSize = 18
+    logo.TextSize = 22
     logo.TextColor3 = theme.Cyan
     logo.Parent = sidebar
     
@@ -231,16 +286,15 @@ function ZeeHubUI.new(title)
     local tabListLayout = Instance.new("UIListLayout")
     tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    tabListLayout.Padding = UDim.new(0, 4)
+    tabListLayout.Padding = UDim.new(0, 10)
     tabListLayout.Parent = tabContainer
     
-    -- Profile Card at bottom left
+    -- Profile Card at bottom left (Narrow)
     local profileCard = Instance.new("Frame")
     profileCard.Name = "ProfileCard"
     profileCard.Size = UDim2.new(1, 0, 0, 50)
     profileCard.Position = UDim2.new(0, 0, 1, -50)
-    profileCard.BackgroundColor3 = theme.Sidebar
-    profileCard.BorderSizePixel = 0
+    profileCard.BackgroundTransparency = 1
     profileCard.Parent = sidebar
     
     -- Profile divider line
@@ -266,7 +320,7 @@ function ZeeHubUI.new(title)
     
     local avatar = Instance.new("ImageLabel")
     avatar.Size = UDim2.new(0, 30, 0, 30)
-    avatar.Position = UDim2.new(0, 12, 0.5, -15)
+    avatar.Position = UDim2.new(0.5, -15, 0.5, -15)
     avatar.BackgroundColor3 = theme.ElementBackground
     avatar.Image = avatarImg
     avatar.Parent = profileCard
@@ -280,22 +334,11 @@ function ZeeHubUI.new(title)
     avStroke.Thickness = 1
     avStroke.Parent = avatar
     
-    local username = Instance.new("TextLabel")
-    username.Size = UDim2.new(1, -55, 1, 0)
-    username.Position = UDim2.new(0, 48, 0, 0)
-    username.BackgroundTransparency = 1
-    username.Text = LocalPlayer.DisplayName or LocalPlayer.Name
-    username.TextColor3 = theme.Text
-    username.TextSize = 11
-    username.Font = Enum.Font.GothamMedium
-    username.TextXAlignment = Enum.TextXAlignment.Left
-    username.Parent = profileCard
-    
     -- Top Bar
     local topbar = Instance.new("Frame")
     topbar.Name = "TopBar"
-    topbar.Size = UDim2.new(1, -150, 0, 40)
-    topbar.Position = UDim2.new(0, 150, 0, 0)
+    topbar.Size = UDim2.new(1, -50, 0, 40)
+    topbar.Position = UDim2.new(0, 50, 0, 0)
     topbar.BackgroundColor3 = theme.TopBar
     topbar.BorderSizePixel = 0
     topbar.Parent = main
@@ -309,8 +352,8 @@ function ZeeHubUI.new(title)
     
     -- Search Input Container
     local searchContainer = Instance.new("Frame")
-    searchContainer.Size = UDim2.new(0.6, 0, 0, 26)
-    searchContainer.Position = UDim2.new(0.04, 0, 0.5, -13)
+    searchContainer.Size = UDim2.new(0.7, 0, 0, 26)
+    searchContainer.Position = UDim2.new(0.05, 0, 0.5, -13)
     searchContainer.BackgroundColor3 = Color3.fromRGB(15, 16, 21)
     searchContainer.BorderSizePixel = 0
     searchContainer.Parent = topbar
@@ -437,8 +480,8 @@ function ZeeHubUI.new(title)
     
     -- Footer
     local footer = Instance.new("Frame")
-    footer.Size = UDim2.new(1, -150, 0, 22)
-    footer.Position = UDim2.new(0, 150, 1, -22)
+    footer.Size = UDim2.new(1, -50, 0, 22)
+    footer.Position = UDim2.new(0, 50, 1, -22)
     footer.BackgroundTransparency = 1
     footer.Parent = main
     
@@ -473,11 +516,11 @@ function ZeeHubUI:CreateTab(name, iconId)
     tab.Controls = {}
     tab.Sections = {}
     
-    -- Tab Container Frame
+    -- Tab Container Frame (Offset by 50px)
     local container = Instance.new("Frame")
     container.Name = name .. "Tab"
-    container.Size = UDim2.new(1, -150, 1, -62)
-    container.Position = UDim2.new(0, 150, 0, 40)
+    container.Size = UDim2.new(1, -50, 1, -62)
+    container.Position = UDim2.new(0, 50, 0, 40)
     container.BackgroundTransparency = 1
     container.Visible = false
     container.Parent = self.Main
@@ -512,57 +555,36 @@ function ZeeHubUI:CreateTab(name, iconId)
     tab.LeftColumn = leftCol
     tab.RightColumn = rightCol
     
-    -- Sidebar button with text and icon
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 136, 0, 32)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 32, 40)
-    btn.BackgroundTransparency = 1
-    btn.Text = ""
-    btn.Parent = self.Main.Sidebar.TabContainer
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
+    -- Tab Button wrapper frame in Sidebar (50px wide)
+    local btnFrame = Instance.new("Frame")
+    btnFrame.Size = UDim2.new(1, 0, 0, 36)
+    btnFrame.BackgroundTransparency = 1
+    btnFrame.Parent = self.Main.Sidebar.TabContainer
     
     local activeIndicator = Instance.new("Frame")
-    activeIndicator.Size = UDim2.new(0, 3, 1, 0)
-    activeIndicator.Position = UDim2.new(0, 0, 0, 0)
+    activeIndicator.Size = UDim2.new(0, 3, 0, 20)
+    activeIndicator.Position = UDim2.new(0, 0, 0.5, -10)
     activeIndicator.BackgroundColor3 = theme.Cyan
     activeIndicator.BorderSizePixel = 0
     activeIndicator.Visible = false
-    activeIndicator.Parent = btn
+    activeIndicator.Parent = btnFrame
     
-    local icon = Instance.new("ImageLabel")
-    icon.Size = UDim2.new(0, 16, 0, 16)
-    icon.Position = UDim2.new(0, 10, 0.5, -8)
-    icon.BackgroundTransparency = 1
-    icon.Image = iconId or "rbxassetid://4483345998"
-    icon.ImageColor3 = theme.MutedText
-    icon.Parent = btn
-    
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1, -36, 1, 0)
-    text.Position = UDim2.new(0, 32, 0, 0)
-    text.BackgroundTransparency = 1
-    text.Text = name
-    text.TextColor3 = theme.MutedText
-    text.TextSize = 12
-    text.Font = Enum.Font.GothamMedium
-    text.TextXAlignment = Enum.TextXAlignment.Left
-    text.Parent = btn
+    local btn = Instance.new("ImageButton")
+    btn.Size = UDim2.new(0, 26, 0, 26)
+    btn.Position = UDim2.new(0.5, -13, 0.5, -13)
+    btn.BackgroundTransparency = 1
+    btn.Image = iconId or "rbxassetid://4483345998"
+    btn.ImageColor3 = theme.MutedText
+    btn.Parent = btnFrame
     
     btn.MouseEnter:Connect(function()
         if self.ActiveTab ~= tab then
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.9}):Play()
-            TweenService:Create(icon, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(220, 220, 220)}):Play()
-            TweenService:Create(text, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(220, 220, 220)}):Play()
         end
     end)
     btn.MouseLeave:Connect(function()
         if self.ActiveTab ~= tab then
-            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
-            TweenService:Create(icon, TweenInfo.new(0.2), {ImageColor3 = theme.MutedText}):Play()
-            TweenService:Create(text, TweenInfo.new(0.2), {TextColor3 = theme.MutedText}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.2), {ImageColor3 = theme.MutedText}):Play()
         end
     end)
     btn.MouseButton1Click:Connect(function()
@@ -570,8 +592,6 @@ function ZeeHubUI:CreateTab(name, iconId)
     end)
     
     tab.Button = btn
-    tab.Icon = icon
-    tab.TextLabel = text
     tab.Indicator = activeIndicator
     
     table.insert(self.Tabs, tab)
@@ -585,17 +605,13 @@ end
 function ZeeHubUI:SelectTab(tab)
     if self.ActiveTab then
         self.ActiveTab.Container.Visible = false
-        self.ActiveTab.Button.BackgroundTransparency = 1
-        self.ActiveTab.Icon.ImageColor3 = theme.MutedText
-        self.ActiveTab.TextLabel.TextColor3 = theme.MutedText
+        self.ActiveTab.Button.ImageColor3 = theme.MutedText
         self.ActiveTab.Indicator.Visible = false
     end
     
     self.ActiveTab = tab
     tab.Container.Visible = true
-    tab.Button.BackgroundTransparency = 0.8
-    tab.Icon.ImageColor3 = theme.Cyan
-    tab.TextLabel.TextColor3 = theme.Cyan
+    tab.Button.ImageColor3 = theme.Cyan
     tab.Indicator.Visible = true
     self.SearchBox.Text = ""
 end
@@ -1333,6 +1349,22 @@ task.spawn(function()
             pcall(plantSeed) 
             task.wait(0.2) 
         end
+
+        if getgenv().Config.AutoCollectDrops then
+            pcall(collectDrops)
+            task.wait(0.2)
+        end
+
+        if getgenv().Config.AutoWater then
+            pcall(waterPlants)
+            task.wait(0.2)
+        end
+
+        if getgenv().Config.AutoPlaceSprinklers then
+            pcall(placeSprinkler)
+            task.wait(0.2)
+        end
     end
 end)
+
 

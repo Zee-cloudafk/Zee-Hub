@@ -1,11 +1,8 @@
 local getgenv = getgenv or function() return _G end
 
--- Konfigurasi Utama
+-- Konfigurasi Utama (Hanya Auto Plant)
 getgenv().Config = {
     AutoPlant = false,
-    AutoHarvest = false,
-    AutoBuySeed = false,
-    AutoSell = false,
     SeedName = "Carrot",
     LoopDelay = 1
 }
@@ -73,37 +70,6 @@ local function plantSeed()
         }
         Remote:FireServer(unpack(args))
     end
-end
-
-local function harvest()
-    for _, folder in pairs(workspace:GetDescendants()) do
-        if folder.Name == "Plants" then
-            for _, plant in pairs(folder:GetChildren()) do
-                local splitName = string.split(plant.Name, "_")
-                local uuid = splitName[2] 
-
-                if uuid and plant:FindFirstChild("HarvestPart") then
-                    local bufferStr = "\198\000$" .. uuid .. "\000"
-                    local args = { buffer.fromstring(bufferStr) }
-                    Remote:FireServer(unpack(args))
-                end
-            end
-        end
-    end
-end
-
-local function buySeed()
-    local nameLength = string.char(#getgenv().Config.SeedName)
-    local bufferStr = "y\000" .. nameLength .. getgenv().Config.SeedName
-    local args = { buffer.fromstring(bufferStr) }
-    Remote:FireServer(unpack(args))
-end
-
-local function sellCrops()
-    local args = {
-        buffer.fromstring("\171\000%")
-    }
-    Remote:FireServer(unpack(args))
 end
 
 --- CUSTOM UI LIBRARY ---
@@ -696,107 +662,6 @@ function Section:CreateToggle(name, default, callback)
     return toggle
 end
 
-function Section:CreateSlider(name, min, max, default, callback)
-    local slider = {}
-    slider.Name = name
-    slider.Value = default or min
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 36)
-    frame.BackgroundTransparency = 1
-    frame.Parent = self.Container
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.6, 0, 0, 16)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = theme.MutedText
-    label.TextSize = 11
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local valText = Instance.new("TextLabel")
-    valText.Size = UDim2.new(0.4, 0, 0, 16)
-    valText.Position = UDim2.new(0.6, 0, 0, 0)
-    valText.BackgroundTransparency = 1
-    valText.Text = tostring(slider.Value) .. " studs/" .. tostring(max) .. " studs"
-    valText.TextColor3 = theme.Cyan
-    valText.TextSize = 11
-    valText.Font = Enum.Font.GothamBold
-    valText.TextXAlignment = Enum.TextXAlignment.Right
-    valText.Parent = frame
-    
-    local track = Instance.new("TextButton")
-    track.Size = UDim2.new(1, 0, 0, 8)
-    track.Position = UDim2.new(0, 0, 0, 22)
-    track.BackgroundColor3 = Color3.fromRGB(43, 42, 51)
-    track.Text = ""
-    track.BorderSizePixel = 0
-    track.Parent = frame
-    
-    local trCorner = Instance.new("UICorner")
-    trCorner.CornerRadius = UDim.new(1, 0)
-    trCorner.Parent = track
-    
-    local fill = Instance.new("Frame")
-    local pct = (slider.Value - min) / (max - min)
-    fill.Size = UDim2.new(pct, 0, 1, 0)
-    fill.BackgroundColor3 = theme.Cyan
-    fill.BorderSizePixel = 0
-    fill.Parent = track
-    
-    local flCorner = Instance.new("UICorner")
-    flCorner.CornerRadius = UDim.new(1, 0)
-    flCorner.Parent = fill
-    
-    local function updateValue(input)
-        local pos = input.Position.X - track.AbsolutePosition.X
-        local width = track.AbsoluteSize.X
-        local clamped = math.clamp(pos / width, 0, 1)
-        
-        local val = math.round(min + (clamped * (max - min)))
-        slider.Value = val
-        valText.Text = tostring(val) .. " studs/" .. tostring(max) .. " studs"
-        fill.Size = UDim2.new(clamped, 0, 1, 0)
-        
-        pcall(callback, val)
-    end
-    
-    local dragging = false
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            updateValue(input)
-        end
-    end)
-    
-    UIS.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-    
-    UIS.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateValue(input)
-        end
-    end)
-    
-    function slider:Set(val)
-        val = math.clamp(val, min, max)
-        slider.Value = val
-        valText.Text = tostring(val) .. " studs/" .. tostring(max) .. " studs"
-        local pct = (val - min) / (max - min)
-        fill.Size = UDim2.new(pct, 0, 1, 0)
-        pcall(callback, val)
-    end
-    
-    slider.Frame = frame
-    table.insert(self.Controls, slider)
-    return slider
-end
-
 function Section:CreateDropdown(name, list, default, callback)
     local dropdown = {}
     dropdown.Name = name
@@ -924,64 +789,6 @@ function Section:CreateDropdown(name, list, default, callback)
     return dropdown
 end
 
-function Section:CreateTextBox(name, placeholder, default, callback)
-    local textbox = {}
-    textbox.Name = name
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 44)
-    frame.BackgroundTransparency = 1
-    frame.Parent = self.Container
-    
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 0, 16)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = theme.MutedText
-    label.TextSize = 11
-    label.Font = Enum.Font.Gotham
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-    
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(1, 0, 0, 24)
-    box.Position = UDim2.new(0, 0, 0, 20)
-    box.BackgroundColor3 = theme.ElementBackground
-    box.Text = default or ""
-    box.PlaceholderText = placeholder or "Ketik di sini..."
-    box.PlaceholderColor3 = theme.MutedText
-    box.TextColor3 = theme.Text
-    box.TextSize = 11
-    box.Font = Enum.Font.GothamMedium
-    box.Parent = frame
-    
-    local boxCorner = Instance.new("UICorner")
-    boxCorner.CornerRadius = UDim.new(0, 4)
-    boxCorner.Parent = box
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(35, 40, 50)
-    stroke.Thickness = 1
-    stroke.Parent = box
-    
-    box.Focused:Connect(function()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = theme.Cyan}):Play()
-    end)
-    box.FocusLost:Connect(function(enterPressed)
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(35, 40, 50)}):Play()
-        pcall(callback, box.Text)
-    end)
-    
-    function textbox:Set(val)
-        box.Text = val
-        pcall(callback, val)
-    end
-    
-    textbox.Frame = frame
-    table.insert(self.Controls, textbox)
-    return textbox
-end
-
 function Section:CreateButton(name, callback)
     local button = {}
     button.Name = name
@@ -1040,29 +847,9 @@ farmSec:CreateDropdown("Pilih Benih", {"Carrot", "Tomato", "Wheat", "Corn", "Pot
     getgenv().Config.SeedName = val
 end)
 
-farmSec:CreateToggle("Auto Harvest", getgenv().Config.AutoHarvest, function(val)
-    getgenv().Config.AutoHarvest = val
-end)
-
-farmSec:CreateToggle("Auto Sell Crops", getgenv().Config.AutoSell, function(val)
-    getgenv().Config.AutoSell = val
-end)
-
--- Tab 2: Shop (House/Cart Icon)
-local shopTab = UI:CreateTab("Shop", "rbxassetid://10747373867")
-local shopSec = shopTab:CreateSection("Toko", "rbxassetid://10747373867", "Left")
-
-shopSec:CreateToggle("Auto Buy Seed", getgenv().Config.AutoBuySeed, function(val)
-    getgenv().Config.AutoBuySeed = val
-end)
-
--- Tab 3: Settings (Gear Icon)
+-- Tab 2: Settings (Gear Icon)
 local settingsTab = UI:CreateTab("Settings", "rbxassetid://10747383162")
 local settingsSec = settingsTab:CreateSection("Pengaturan", "rbxassetid://10747383162", "Left")
-
-settingsSec:CreateSlider("Loop Delay (s)", 1, 10, getgenv().Config.LoopDelay, function(val)
-    getgenv().Config.LoopDelay = val
-end)
 
 settingsSec:CreateButton("Destroy UI", function()
     UI.Gui:Destroy()
@@ -1071,21 +858,6 @@ end)
 --- MAIN LOOP ---
 task.spawn(function()
     while task.wait(getgenv().Config.LoopDelay) do
-        if getgenv().Config.AutoSell then 
-            pcall(sellCrops) 
-            task.wait(0.2) 
-        end
-        
-        if getgenv().Config.AutoHarvest then 
-            pcall(harvest) 
-            task.wait(0.2) 
-        end
-        
-        if getgenv().Config.AutoBuySeed then 
-            pcall(buySeed) 
-            task.wait(0.2) 
-        end
-        
         if getgenv().Config.AutoPlant then 
             pcall(plantSeed) 
             task.wait(0.2) 

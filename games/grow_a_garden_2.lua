@@ -7,34 +7,18 @@ getgenv().Config = {
     AutoBuySeed = false,
     AutoSell = false,
     SeedName = "Carrot",
-    LoopDelay = 1,
-    
-    -- Planting settings
-    PlantGridSpacing = 4,
-    AutoExpandGarden = false,
-    PlantAtSavedPos = false,
-    PlantPos = "0, 0, 0",
-    
-    -- Harvesting settings
-    AutoCollectDrops = false,
-    HarvestMode = "Filtered",
-    FruitsOnly = false,
-    
-    -- Growing settings
-    AutoPlaceSprinklers = false,
-    SprinklerType = "All",
-    SprinkleAtSavedPos = false,
-    SprinklerPos = "0, 0, 0",
-    
-    AutoWater = false,
-    WateringCanType = "All",
-    WaterAtSavedPos = false,
-    WaterPos = "0, 0, 0"
+    LoopDelay = 1
 }
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+while not LocalPlayer do
+    task.wait(0.5)
+    LocalPlayer = Players.LocalPlayer
+end
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("SharedModules"):WaitForChild("Packet"):WaitForChild("RemoteEvent")
-local LocalPlayer = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
@@ -51,21 +35,6 @@ local theme = {
     Interactive = Color3.fromRGB(35, 40, 50)
 }
 
---- HELPER FUNCTIONS ---
-
-local function parseCoords(str)
-    local parts = string.split(str, ",")
-    if #parts == 3 then
-        local x = tonumber(parts[1])
-        local y = tonumber(parts[2])
-        local z = tonumber(parts[3])
-        if x and y and z then
-            return x, y, z
-        end
-    end
-    return nil
-end
-
 --- FUNGSI GAME UTAMA ---
 
 local function plantSeed()
@@ -73,39 +42,27 @@ local function plantSeed()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    local x, y, z
-    if getgenv().Config.PlantAtSavedPos then
-        local sx, sy, sz = parseCoords(getgenv().Config.PlantPos)
-        if sx and sy and sz then
-            x, y, z = sx, sy, sz
-        end
-    end
+    local closestPlot = nil
+    local shortestDist = 60
     
-    if not x then
-        local closestPlot = nil
-        local shortestDist = 60 -- Maksimal jarak 60 stud
-        
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj.Name == "GardenTotalArea" and obj:IsA("BasePart") then
-                local dist = (hrp.Position - obj.Position).Magnitude
-                if dist < shortestDist then
-                    shortestDist = dist
-                    closestPlot = obj
-                end
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name == "GardenTotalArea" and obj:IsA("BasePart") then
+            local dist = (hrp.Position - obj.Position).Magnitude
+            if dist < shortestDist then
+                shortestDist = dist
+                closestPlot = obj
             end
         end
-        
-        if closestPlot then
-            local halfX = (closestPlot.Size.X / 2) - 1
-            local halfZ = (closestPlot.Size.Z / 2) - 1
-            
-            x = closestPlot.Position.X + (math.random() * 2 - 1) * halfX
-            z = closestPlot.Position.Z + (math.random() * 2 - 1) * halfZ
-            y = closestPlot.Position.Y
-        end
     end
     
-    if x and y and z then
+    if closestPlot then
+        local halfX = (closestPlot.Size.X / 2) - 1
+        local halfZ = (closestPlot.Size.Z / 2) - 1
+        
+        local x = closestPlot.Position.X + (math.random() * 2 - 1) * halfX
+        local z = closestPlot.Position.Z + (math.random() * 2 - 1) * halfZ
+        local y = closestPlot.Position.Y
+        
         local coordinateBytes = string.pack("<fff", x, y, z)
         local nameLength = string.char(#getgenv().Config.SeedName)
         local bufferStr = "\t\000" .. coordinateBytes .. nameLength .. getgenv().Config.SeedName
@@ -147,62 +104,6 @@ local function sellCrops()
         buffer.fromstring("\171\000%")
     }
     Remote:FireServer(unpack(args))
-end
-
-local function collectDrops()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and (obj.Name == "Coin" or obj.Name == "Ruby" or obj.Name == "Drop" or obj.Name == "Star") then
-            obj.CFrame = hrp.CFrame
-        end
-    end
-end
-
-local function waterPlants()
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not (tool and tool.Name:lower():find("can")) then
-        for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
-            if t:IsA("Tool") and t.Name:lower():find("can") then
-                tool = t
-                break
-            end
-        end
-        if tool then
-            tool.Parent = char
-        end
-    end
-    
-    if tool and tool.Parent == char then
-        tool:Activate()
-    end
-end
-
-local function placeSprinkler()
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    local tool = char:FindFirstChildOfClass("Tool")
-    if not (tool and tool.Name:lower():find("sprinkler")) then
-        for _, t in ipairs(LocalPlayer.Backpack:GetChildren()) do
-            if t:IsA("Tool") and t.Name:lower():find("sprinkler") then
-                tool = t
-                break
-            end
-        end
-        if tool then
-            tool.Parent = char
-        end
-    end
-    
-    if tool and tool.Parent == char then
-        tool:Activate()
-    end
 end
 
 --- CUSTOM UI LIBRARY ---
@@ -264,7 +165,7 @@ function ZeeHubUI.new(title)
     sbLine.BorderSizePixel = 0
     sbLine.Parent = sidebar
     
-    -- Logo "C" (representing clean circle or custom initial)
+    -- Logo "Z"
     local logo = Instance.new("TextLabel")
     logo.Size = UDim2.new(0, 30, 0, 30)
     logo.Position = UDim2.new(0.5, -15, 0, 10)
@@ -277,6 +178,7 @@ function ZeeHubUI.new(title)
     
     -- Tab list container
     local tabContainer = Instance.new("ScrollingFrame")
+    tabContainer.Name = "TabContainer"
     tabContainer.Size = UDim2.new(1, 0, 1, -110)
     tabContainer.Position = UDim2.new(0, 0, 0, 50)
     tabContainer.BackgroundTransparency = 1
@@ -308,7 +210,7 @@ function ZeeHubUI.new(title)
     -- Get player thumbnail
     local avatarImg = "rbxassetid://10747373867"
     local success, content = pcall(function()
-        return game:GetService("Players"):GetUserThumbnailAsync(
+        return Players:GetUserThumbnailAsync(
             LocalPlayer.UserId,
             Enum.ThumbnailType.HeadShot,
             Enum.ThumbnailSize.Size48x48
@@ -1126,204 +1028,43 @@ end
 
 local UI = ZeeHubUI.new("Zee-Hub | Grow a Garden 2")
 
--- Tab 1: Auto Farm (Compass Icon)
+-- Tab 1: Auto Farm (Target/Compass Icon)
 local farmTab = UI:CreateTab("Auto Farm", "rbxassetid://10747372704")
+local farmSec = farmTab:CreateSection("Farming", "rbxassetid://4483345998", "Left")
 
--- Left Column Sections
-local plantingSection = farmTab:CreateSection("Planting", "rbxassetid://4483345998", "Left")
-local harvestingSection = farmTab:CreateSection("Harvesting", "rbxassetid://10618978415", "Left")
-
--- Right Column Sections
-local growingSection = farmTab:CreateSection("Growing", "rbxassetid://10618979201", "Right")
-local sellingSection = farmTab:CreateSection("Selling", "rbxassetid://10747372704", "Right")
-
--- Planting Elements
-plantingSection:CreateToggle("Auto Plant", getgenv().Config.AutoPlant, function(val)
+farmSec:CreateToggle("Auto Plant", getgenv().Config.AutoPlant, function(val)
     getgenv().Config.AutoPlant = val
 end)
 
-plantingSection:CreateDropdown("Seeds to Plant", {"Carrot", "Tomato", "Wheat", "Corn", "Potato"}, getgenv().Config.SeedName, function(val)
+farmSec:CreateDropdown("Pilih Benih", {"Carrot", "Tomato", "Wheat", "Corn", "Potato"}, getgenv().Config.SeedName, function(val)
     getgenv().Config.SeedName = val
 end)
 
-plantingSection:CreateSlider("Plant Grid Spacing", 1, 10, getgenv().Config.PlantGridSpacing, function(val)
-    getgenv().Config.PlantGridSpacing = val
-end)
-
-plantingSection:CreateToggle("Auto Expand Garden", getgenv().Config.AutoExpandGarden, function(val)
-    getgenv().Config.AutoExpandGarden = val
-end)
-
-plantingSection:CreateButton("Teleport to My Garden", function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local closestPlot = nil
-        local shortestDist = 9999
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj.Name == "GardenTotalArea" and obj:IsA("BasePart") then
-                local dist = (hrp.Position - obj.Position).Magnitude
-                if dist < shortestDist then
-                    shortestDist = dist
-                    closestPlot = obj
-                end
-            end
-        end
-        if closestPlot then
-            hrp.CFrame = CFrame.new(closestPlot.Position + Vector3.new(0, 3, 0))
-        end
-    end
-end)
-
-plantingSection:CreateToggle("Plant at Saved Position", getgenv().Config.PlantAtSavedPos, function(val)
-    getgenv().Config.PlantAtSavedPos = val
-end)
-
-local plantPosBox = plantingSection:CreateTextBox("Plant Position", "X, Y, Z", getgenv().Config.PlantPos, function(val)
-    getgenv().Config.PlantPos = val
-end)
-
-plantingSection:CreateButton("Save Plant Position", function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local pos = hrp.Position
-        local posStr = string.format("%.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z)
-        getgenv().Config.PlantPos = posStr
-        plantPosBox:Set(posStr)
-    end
-end)
-
-plantingSection:CreateButton("Clear Plant Position", function()
-    getgenv().Config.PlantPos = "0, 0, 0"
-    plantPosBox:Set("0, 0, 0")
-end)
-
--- Harvesting Elements
-harvestingSection:CreateToggle("Auto Harvest", getgenv().Config.AutoHarvest, function(val)
+farmSec:CreateToggle("Auto Harvest", getgenv().Config.AutoHarvest, function(val)
     getgenv().Config.AutoHarvest = val
 end)
 
-harvestingSection:CreateToggle("Auto Collect Drops", getgenv().Config.AutoCollectDrops, function(val)
-    getgenv().Config.AutoCollectDrops = val
-end)
-
-harvestingSection:CreateDropdown("Harvest Mode", {"All", "Filtered"}, getgenv().Config.HarvestMode, function(val)
-    getgenv().Config.HarvestMode = val
-end)
-
-harvestingSection:CreateToggle("Fruits Only", getgenv().Config.FruitsOnly, function(val)
-    getgenv().Config.FruitsOnly = val
-end)
-
--- Growing Elements
-growingSection:CreateToggle("Auto Place Sprinklers", getgenv().Config.AutoPlaceSprinklers, function(val)
-    getgenv().Config.AutoPlaceSprinklers = val
-end)
-
-growingSection:CreateDropdown("Sprinklers", {"All", "Basic", "Golden"}, getgenv().Config.SprinklerType, function(val)
-    getgenv().Config.SprinklerType = val
-end)
-
-growingSection:CreateToggle("Sprinkle at Saved Position", getgenv().Config.SprinkleAtSavedPos, function(val)
-    getgenv().Config.SprinkleAtSavedPos = val
-end)
-
-local sprinklerPosBox = growingSection:CreateTextBox("Sprinkler Position", "X, Y, Z", getgenv().Config.SprinklerPos, function(val)
-    getgenv().Config.SprinklerPos = val
-end)
-
-growingSection:CreateButton("Save Sprinkler Position", function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local pos = hrp.Position
-        local posStr = string.format("%.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z)
-        getgenv().Config.SprinklerPos = posStr
-        sprinklerPosBox:Set(posStr)
-    end
-end)
-
-growingSection:CreateButton("Clear Sprinkler Position", function()
-    getgenv().Config.SprinklerPos = "0, 0, 0"
-    sprinklerPosBox:Set("0, 0, 0")
-end)
-
-growingSection:CreateToggle("Auto Water Plants", getgenv().Config.AutoWater, function(val)
-    getgenv().Config.AutoWater = val
-end)
-
-growingSection:CreateDropdown("Watering Cans", {"All", "Basic", "Golden"}, getgenv().Config.WateringCanType, function(val)
-    getgenv().Config.WateringCanType = val
-end)
-
-growingSection:CreateToggle("Water at Saved Position", getgenv().Config.WaterAtSavedPos, function(val)
-    getgenv().Config.WaterAtSavedPos = val
-end)
-
-local waterPosBox = growingSection:CreateTextBox("Water Position", "X, Y, Z", getgenv().Config.WaterPos, function(val)
-    getgenv().Config.WaterPos = val
-end)
-
-growingSection:CreateButton("Save Water Position", function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local pos = hrp.Position
-        local posStr = string.format("%.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z)
-        getgenv().Config.WaterPos = posStr
-        waterPosBox:Set(posStr)
-    end
-end)
-
-growingSection:CreateButton("Clear Water Position", function()
-    getgenv().Config.WaterPos = "0, 0, 0"
-    waterPosBox:Set("0, 0, 0")
-end)
-
--- Selling Elements
-sellingSection:CreateToggle("Auto Sell", getgenv().Config.AutoSell, function(val)
+farmSec:CreateToggle("Auto Sell Crops", getgenv().Config.AutoSell, function(val)
     getgenv().Config.AutoSell = val
 end)
 
--- Tab 2: Shop (House Icon)
+-- Tab 2: Shop (House/Cart Icon)
 local shopTab = UI:CreateTab("Shop", "rbxassetid://10747373867")
-local shopSec = shopTab:CreateSection("Auto Buy Settings", "rbxassetid://10747373867", "Left")
-shopSec:CreateToggle("Auto Buy Seeds", getgenv().Config.AutoBuySeed, function(val)
+local shopSec = shopTab:CreateSection("Toko", "rbxassetid://10747373867", "Left")
+
+shopSec:CreateToggle("Auto Buy Seed", getgenv().Config.AutoBuySeed, function(val)
     getgenv().Config.AutoBuySeed = val
 end)
-shopSec:CreateToggle("Auto Buy Watering Cans", false, function(val)
-    print("[Zee-Hub] Auto Buy Watering Cans toggled: ", val)
-end)
 
--- Tab 3: Eggs (Egg Icon)
-local eggTab = UI:CreateTab("Eggs", "rbxassetid://10747374712")
-local eggSec = eggTab:CreateSection("Auto Open Eggs", "rbxassetid://10747374712", "Left")
-eggSec:CreateToggle("Auto Open Common Egg", false, function() end)
-
--- Tab 4: Skills (Star Icon)
-local skillsTab = UI:CreateTab("Skills", "rbxassetid://10747373176")
-local skillsSec = skillsTab:CreateSection("Player Stats", "rbxassetid://10747373176", "Left")
-skillsSec:CreateToggle("Auto Rebirth", false, function() end)
-
--- Tab 5: Combat (Swords Icon)
-local combatTab = UI:CreateTab("Combat", "rbxassetid://10747372439")
-local combatSec = combatTab:CreateSection("Pest Control", "rbxassetid://10747372439", "Left")
-combatSec:CreateToggle("Auto Attack Pests", false, function() end)
-
--- Placeholders for other sidebar tabs (Tabs 6-9)
-local mailTab = UI:CreateTab("Mail", "rbxassetid://10747374026")
-local giftTab = UI:CreateTab("Gift", "rbxassetid://10747374245")
-local visualTab = UI:CreateTab("Visuals", "rbxassetid://10747373516")
-local alertTab = UI:CreateTab("Alerts", "rbxassetid://10747373672")
-
--- Tab 10: Settings (Gear Icon)
+-- Tab 3: Settings (Gear Icon)
 local settingsTab = UI:CreateTab("Settings", "rbxassetid://10747383162")
-local uiSec = settingsTab:CreateSection("UI Configuration", "rbxassetid://10747383162", "Left")
-uiSec:CreateSlider("Loop Delay (s)", 1, 10, getgenv().Config.LoopDelay, function(val)
+local settingsSec = settingsTab:CreateSection("Pengaturan", "rbxassetid://10747383162", "Left")
+
+settingsSec:CreateSlider("Loop Delay (s)", 1, 10, getgenv().Config.LoopDelay, function(val)
     getgenv().Config.LoopDelay = val
 end)
-uiSec:CreateButton("Destroy UI", function()
+
+settingsSec:CreateButton("Destroy UI", function()
     UI.Gui:Destroy()
 end)
 
@@ -1349,22 +1090,5 @@ task.spawn(function()
             pcall(plantSeed) 
             task.wait(0.2) 
         end
-
-        if getgenv().Config.AutoCollectDrops then
-            pcall(collectDrops)
-            task.wait(0.2)
-        end
-
-        if getgenv().Config.AutoWater then
-            pcall(waterPlants)
-            task.wait(0.2)
-        end
-
-        if getgenv().Config.AutoPlaceSprinklers then
-            pcall(placeSprinkler)
-            task.wait(0.2)
-        end
     end
 end)
-
-

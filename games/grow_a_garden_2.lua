@@ -40,15 +40,15 @@ local UIS = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 
 local theme = {
-    Background = Color3.fromRGB(21, 20, 25),
-    Sidebar = Color3.fromRGB(28, 27, 33),
-    TopBar = Color3.fromRGB(28, 27, 33),
-    Pink = Color3.fromRGB(255, 125, 162),
+    Background = Color3.fromRGB(13, 14, 18),      -- Obsidian charcoal
+    Sidebar = Color3.fromRGB(20, 22, 28),         -- Dark slate
+    TopBar = Color3.fromRGB(20, 22, 28),          -- Dark slate
+    Cyan = Color3.fromRGB(0, 240, 255),           -- Neon Cyan
     Text = Color3.fromRGB(255, 255, 255),
-    MutedText = Color3.fromRGB(150, 150, 160),
-    Border = Color3.fromRGB(255, 125, 162),
-    ElementBackground = Color3.fromRGB(28, 27, 33),
-    Interactive = Color3.fromRGB(43, 42, 51)
+    MutedText = Color3.fromRGB(140, 145, 155),
+    Border = Color3.fromRGB(0, 240, 255),
+    ElementBackground = Color3.fromRGB(25, 28, 36),
+    Interactive = Color3.fromRGB(35, 40, 50)
 }
 
 --- HELPER FUNCTIONS ---
@@ -152,17 +152,17 @@ end
 
 --- CUSTOM UI LIBRARY ---
 
-local ChiyoUI = {}
-ChiyoUI.__index = ChiyoUI
+local ZeeHubUI = {}
+ZeeHubUI.__index = ZeeHubUI
 
-function ChiyoUI.new(title)
-    local self = setmetatable({}, ChiyoUI)
+function ZeeHubUI.new(title)
+    local self = setmetatable({}, ZeeHubUI)
     
-    local old = CoreGui:FindFirstChild("ChiyoHubUI")
+    local old = CoreGui:FindFirstChild("ZeeHubUI")
     if old then old:Destroy() end
     
     local gui = Instance.new("ScreenGui")
-    gui.Name = "ChiyoHubUI"
+    gui.Name = "ZeeHubUI"
     gui.ResetOnSpawn = false
     gui.Parent = CoreGui
     
@@ -171,8 +171,8 @@ function ChiyoUI.new(title)
     -- Main Window Frame
     local main = Instance.new("Frame")
     main.Name = "MainFrame"
-    main.Size = UDim2.new(0, 680, 0, 420)
-    main.Position = UDim2.new(0.5, -340, 0.5, -210)
+    main.Size = UDim2.new(0, 700, 0, 420)
+    main.Position = UDim2.new(0.5, -350, 0.5, -210)
     main.BackgroundColor3 = theme.Background
     main.BorderSizePixel = 0
     main.Parent = gui
@@ -181,18 +181,18 @@ function ChiyoUI.new(title)
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = main
     
-    -- Glowing stroke border
+    -- Neon Cyan glowing stroke border
     local stroke = Instance.new("UIStroke")
-    stroke.Color = theme.Border
+    stroke.Color = theme.Cyan
     stroke.Thickness = 1.5
     stroke.Transparency = 0.4
     stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
     stroke.Parent = main
     
-    -- Sidebar Frame (Left)
+    -- Sidebar Frame (Left) - wider to support icon + text
     local sidebar = Instance.new("Frame")
     sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, 50, 1, 0)
+    sidebar.Size = UDim2.new(0, 150, 1, 0)
     sidebar.BackgroundColor3 = theme.Sidebar
     sidebar.BorderSizePixel = 0
     sidebar.Parent = main
@@ -209,20 +209,20 @@ function ChiyoUI.new(title)
     sbLine.BorderSizePixel = 0
     sbLine.Parent = sidebar
     
-    -- Logo "C"
+    -- Logo "ZEE-HUB"
     local logo = Instance.new("TextLabel")
-    logo.Size = UDim2.new(0, 30, 0, 30)
-    logo.Position = UDim2.new(0.5, -15, 0, 10)
+    logo.Size = UDim2.new(1, 0, 0, 40)
+    logo.Position = UDim2.new(0, 0, 0, 10)
     logo.BackgroundTransparency = 1
-    logo.Text = "C"
+    logo.Text = "ZEE-HUB"
     logo.Font = Enum.Font.GothamBold
-    logo.TextSize = 22
-    logo.TextColor3 = theme.Pink
+    logo.TextSize = 18
+    logo.TextColor3 = theme.Cyan
     logo.Parent = sidebar
     
-    -- Tab icons container
+    -- Tab list container
     local tabContainer = Instance.new("ScrollingFrame")
-    tabContainer.Size = UDim2.new(1, 0, 1, -50)
+    tabContainer.Size = UDim2.new(1, 0, 1, -110)
     tabContainer.Position = UDim2.new(0, 0, 0, 50)
     tabContainer.BackgroundTransparency = 1
     tabContainer.ScrollBarThickness = 0
@@ -231,14 +231,71 @@ function ChiyoUI.new(title)
     local tabListLayout = Instance.new("UIListLayout")
     tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     tabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    tabListLayout.Padding = UDim.new(0, 10)
+    tabListLayout.Padding = UDim.new(0, 4)
     tabListLayout.Parent = tabContainer
+    
+    -- Profile Card at bottom left
+    local profileCard = Instance.new("Frame")
+    profileCard.Name = "ProfileCard"
+    profileCard.Size = UDim2.new(1, 0, 0, 50)
+    profileCard.Position = UDim2.new(0, 0, 1, -50)
+    profileCard.BackgroundColor3 = theme.Sidebar
+    profileCard.BorderSizePixel = 0
+    profileCard.Parent = sidebar
+    
+    -- Profile divider line
+    local profDivider = Instance.new("Frame")
+    profDivider.Size = UDim2.new(1, -20, 0, 1)
+    profDivider.Position = UDim2.new(0, 10, 0, 0)
+    profDivider.BackgroundColor3 = Color3.fromRGB(35, 38, 48)
+    profDivider.BorderSizePixel = 0
+    profDivider.Parent = profileCard
+    
+    -- Get player thumbnail
+    local avatarImg = "rbxassetid://10747373867"
+    local success, content = pcall(function()
+        return game:GetService("Players"):GetUserThumbnailAsync(
+            LocalPlayer.UserId,
+            Enum.ThumbnailType.HeadShot,
+            Enum.ThumbnailSize.Size48x48
+        )
+    end)
+    if success then
+        avatarImg = content
+    end
+    
+    local avatar = Instance.new("ImageLabel")
+    avatar.Size = UDim2.new(0, 30, 0, 30)
+    avatar.Position = UDim2.new(0, 12, 0.5, -15)
+    avatar.BackgroundColor3 = theme.ElementBackground
+    avatar.Image = avatarImg
+    avatar.Parent = profileCard
+    
+    local avCorner = Instance.new("UICorner")
+    avCorner.CornerRadius = UDim.new(1, 0)
+    avCorner.Parent = avatar
+    
+    local avStroke = Instance.new("UIStroke")
+    avStroke.Color = theme.Cyan
+    avStroke.Thickness = 1
+    avStroke.Parent = avatar
+    
+    local username = Instance.new("TextLabel")
+    username.Size = UDim2.new(1, -55, 1, 0)
+    username.Position = UDim2.new(0, 48, 0, 0)
+    username.BackgroundTransparency = 1
+    username.Text = LocalPlayer.DisplayName or LocalPlayer.Name
+    username.TextColor3 = theme.Text
+    username.TextSize = 11
+    username.Font = Enum.Font.GothamMedium
+    username.TextXAlignment = Enum.TextXAlignment.Left
+    username.Parent = profileCard
     
     -- Top Bar
     local topbar = Instance.new("Frame")
     topbar.Name = "TopBar"
-    topbar.Size = UDim2.new(1, -50, 0, 40)
-    topbar.Position = UDim2.new(0, 50, 0, 0)
+    topbar.Size = UDim2.new(1, -150, 0, 40)
+    topbar.Position = UDim2.new(0, 150, 0, 0)
     topbar.BackgroundColor3 = theme.TopBar
     topbar.BorderSizePixel = 0
     topbar.Parent = main
@@ -246,15 +303,15 @@ function ChiyoUI.new(title)
     local tbLine = Instance.new("Frame")
     tbLine.Size = UDim2.new(1, 0, 0, 1)
     tbLine.Position = UDim2.new(0, 0, 1, -1)
-    tbLine.BackgroundColor3 = Color3.fromRGB(35, 34, 42)
+    tbLine.BackgroundColor3 = Color3.fromRGB(30, 33, 42)
     tbLine.BorderSizePixel = 0
     tbLine.Parent = topbar
     
     -- Search Input Container
     local searchContainer = Instance.new("Frame")
-    searchContainer.Size = UDim2.new(0.7, 0, 0, 26)
-    searchContainer.Position = UDim2.new(0.05, 0, 0.5, -13)
-    searchContainer.BackgroundColor3 = Color3.fromRGB(21, 20, 25)
+    searchContainer.Size = UDim2.new(0.6, 0, 0, 26)
+    searchContainer.Position = UDim2.new(0.04, 0, 0.5, -13)
+    searchContainer.BackgroundColor3 = Color3.fromRGB(15, 16, 21)
     searchContainer.BorderSizePixel = 0
     searchContainer.Parent = topbar
     
@@ -263,7 +320,7 @@ function ChiyoUI.new(title)
     scCorner.Parent = searchContainer
     
     local scStroke = Instance.new("UIStroke")
-    scStroke.Color = Color3.fromRGB(50, 50, 60)
+    scStroke.Color = Color3.fromRGB(40, 45, 55)
     scStroke.Thickness = 1
     scStroke.Parent = searchContainer
     
@@ -272,7 +329,7 @@ function ChiyoUI.new(title)
     searchIcon.Position = UDim2.new(0, 8, 0.5, -7)
     searchIcon.BackgroundTransparency = 1
     searchIcon.Image = "rbxassetid://9886659671"
-    searchIcon.ImageColor3 = theme.MutedText
+    searchIcon.ImageColor3 = theme.Cyan
     searchIcon.Parent = searchContainer
     
     local searchBox = Instance.new("TextBox")
@@ -294,7 +351,7 @@ function ChiyoUI.new(title)
     dragBtn.Position = UDim2.new(0.95, -20, 0.5, -10)
     dragBtn.BackgroundTransparency = 1
     dragBtn.Image = "rbxassetid://10747384394"
-    dragBtn.ImageColor3 = theme.Pink
+    dragBtn.ImageColor3 = theme.Cyan
     dragBtn.Parent = topbar
     
     -- Close Button
@@ -309,7 +366,7 @@ function ChiyoUI.new(title)
     closeBtn.Parent = topbar
     
     closeBtn.MouseEnter:Connect(function()
-        closeBtn.TextColor3 = theme.Pink
+        closeBtn.TextColor3 = theme.Cyan
     end)
     closeBtn.MouseLeave:Connect(function()
         closeBtn.TextColor3 = theme.MutedText
@@ -380,8 +437,8 @@ function ChiyoUI.new(title)
     
     -- Footer
     local footer = Instance.new("Frame")
-    footer.Size = UDim2.new(1, -50, 0, 22)
-    footer.Position = UDim2.new(0, 50, 1, -22)
+    footer.Size = UDim2.new(1, -150, 0, 22)
+    footer.Position = UDim2.new(0, 150, 1, -22)
     footer.BackgroundTransparency = 1
     footer.Parent = main
     
@@ -389,7 +446,7 @@ function ChiyoUI.new(title)
     footerText.Size = UDim2.new(1, -20, 1, 0)
     footerText.Position = UDim2.new(0, 10, 0, 0)
     footerText.BackgroundTransparency = 1
-    footerText.Text = "discord.gg/chiyo | v1.4 | Game: Grow a Garden 2"
+    footerText.Text = "Zee-Hub | v1.4 | Game: Grow a Garden 2"
     footerText.TextColor3 = theme.MutedText
     footerText.TextSize = 10
     footerText.Font = Enum.Font.Gotham
@@ -409,7 +466,7 @@ end
 local Tab = {}
 Tab.__index = Tab
 
-function ChiyoUI:CreateTab(name, iconId)
+function ZeeHubUI:CreateTab(name, iconId)
     local tab = setmetatable({}, Tab)
     tab.Name = name
     tab.Window = self
@@ -419,8 +476,8 @@ function ChiyoUI:CreateTab(name, iconId)
     -- Tab Container Frame
     local container = Instance.new("Frame")
     container.Name = name .. "Tab"
-    container.Size = UDim2.new(1, -50, 1, -62)
-    container.Position = UDim2.new(0, 50, 0, 40)
+    container.Size = UDim2.new(1, -150, 1, -62)
+    container.Position = UDim2.new(0, 150, 0, 40)
     container.BackgroundTransparency = 1
     container.Visible = false
     container.Parent = self.Main
@@ -455,22 +512,57 @@ function ChiyoUI:CreateTab(name, iconId)
     tab.LeftColumn = leftCol
     tab.RightColumn = rightCol
     
-    -- Sidebar icon button
-    local btn = Instance.new("ImageButton")
-    btn.Size = UDim2.new(0, 26, 0, 26)
+    -- Sidebar button with text and icon
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 136, 0, 32)
+    btn.BackgroundColor3 = Color3.fromRGB(30, 32, 40)
     btn.BackgroundTransparency = 1
-    btn.Image = iconId or "rbxassetid://4483345998"
-    btn.ImageColor3 = theme.MutedText
+    btn.Text = ""
     btn.Parent = self.Main.Sidebar.TabContainer
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = btn
+    
+    local activeIndicator = Instance.new("Frame")
+    activeIndicator.Size = UDim2.new(0, 3, 1, 0)
+    activeIndicator.Position = UDim2.new(0, 0, 0, 0)
+    activeIndicator.BackgroundColor3 = theme.Cyan
+    activeIndicator.BorderSizePixel = 0
+    activeIndicator.Visible = false
+    activeIndicator.Parent = btn
+    
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 16, 0, 16)
+    icon.Position = UDim2.new(0, 10, 0.5, -8)
+    icon.BackgroundTransparency = 1
+    icon.Image = iconId or "rbxassetid://4483345998"
+    icon.ImageColor3 = theme.MutedText
+    icon.Parent = btn
+    
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, -36, 1, 0)
+    text.Position = UDim2.new(0, 32, 0, 0)
+    text.BackgroundTransparency = 1
+    text.Text = name
+    text.TextColor3 = theme.MutedText
+    text.TextSize = 12
+    text.Font = Enum.Font.GothamMedium
+    text.TextXAlignment = Enum.TextXAlignment.Left
+    text.Parent = btn
     
     btn.MouseEnter:Connect(function()
         if self.ActiveTab ~= tab then
-            TweenService:Create(btn, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.9}):Play()
+            TweenService:Create(icon, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(220, 220, 220)}):Play()
+            TweenService:Create(text, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(220, 220, 220)}):Play()
         end
     end)
     btn.MouseLeave:Connect(function()
         if self.ActiveTab ~= tab then
-            TweenService:Create(btn, TweenInfo.new(0.2), {ImageColor3 = theme.MutedText}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+            TweenService:Create(icon, TweenInfo.new(0.2), {ImageColor3 = theme.MutedText}):Play()
+            TweenService:Create(text, TweenInfo.new(0.2), {TextColor3 = theme.MutedText}):Play()
         end
     end)
     btn.MouseButton1Click:Connect(function()
@@ -478,6 +570,9 @@ function ChiyoUI:CreateTab(name, iconId)
     end)
     
     tab.Button = btn
+    tab.Icon = icon
+    tab.TextLabel = text
+    tab.Indicator = activeIndicator
     
     table.insert(self.Tabs, tab)
     if #self.Tabs == 1 then
@@ -487,16 +582,22 @@ function ChiyoUI:CreateTab(name, iconId)
     return tab
 end
 
-function ChiyoUI:SelectTab(tab)
+function ZeeHubUI:SelectTab(tab)
     if self.ActiveTab then
         self.ActiveTab.Container.Visible = false
-        self.ActiveTab.Button.ImageColor3 = theme.MutedText
+        self.ActiveTab.Button.BackgroundTransparency = 1
+        self.ActiveTab.Icon.ImageColor3 = theme.MutedText
+        self.ActiveTab.TextLabel.TextColor3 = theme.MutedText
+        self.ActiveTab.Indicator.Visible = false
     end
     
     self.ActiveTab = tab
     tab.Container.Visible = true
-    tab.Button.ImageColor3 = theme.Pink
-    self.SearchBox.Text = "" -- clear search
+    tab.Button.BackgroundTransparency = 0.8
+    tab.Icon.ImageColor3 = theme.Cyan
+    tab.TextLabel.TextColor3 = theme.Cyan
+    tab.Indicator.Visible = true
+    self.SearchBox.Text = ""
 end
 
 local Section = {}
@@ -513,7 +614,7 @@ function Tab:CreateSection(name, iconId, column)
     local main = Instance.new("Frame")
     main.Name = name .. "Section"
     main.Size = UDim2.new(1, 0, 0, 0)
-    main.BackgroundColor3 = Color3.fromRGB(24, 23, 28)
+    main.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
     main.BorderSizePixel = 0
     main.Parent = parentCol
     main.ClipsDescendants = true
@@ -523,7 +624,7 @@ function Tab:CreateSection(name, iconId, column)
     corner.Parent = main
     
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(40, 40, 50)
+    stroke.Color = Color3.fromRGB(35, 40, 50)
     stroke.Thickness = 1
     stroke.Parent = main
     
@@ -537,7 +638,7 @@ function Tab:CreateSection(name, iconId, column)
     secIcon.Position = UDim2.new(0, 8, 0.5, -8)
     secIcon.BackgroundTransparency = 1
     secIcon.Image = iconId or "rbxassetid://4483345998"
-    secIcon.ImageColor3 = theme.Pink
+    secIcon.ImageColor3 = theme.Cyan
     secIcon.Parent = header
     
     local title = Instance.new("TextLabel")
@@ -627,7 +728,7 @@ function Section:CreateToggle(name, default, callback)
     local switch = Instance.new("TextButton")
     switch.Size = UDim2.new(0, 30, 0, 16)
     switch.Position = UDim2.new(1, -30, 0.5, -8)
-    switch.BackgroundColor3 = toggle.State and theme.Pink or Color3.fromRGB(43, 42, 51)
+    switch.BackgroundColor3 = toggle.State and theme.Cyan or Color3.fromRGB(43, 42, 51)
     switch.Text = ""
     switch.BorderSizePixel = 0
     switch.Parent = frame
@@ -648,7 +749,7 @@ function Section:CreateToggle(name, default, callback)
     kbCorner.Parent = knob
     
     local function updateVisual(animate)
-        local targetColor = toggle.State and theme.Pink or Color3.fromRGB(43, 42, 51)
+        local targetColor = toggle.State and theme.Cyan or Color3.fromRGB(43, 42, 51)
         local targetPos = toggle.State and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
         
         if animate then
@@ -702,7 +803,7 @@ function Section:CreateSlider(name, min, max, default, callback)
     valText.Position = UDim2.new(0.6, 0, 0, 0)
     valText.BackgroundTransparency = 1
     valText.Text = tostring(slider.Value) .. " studs/" .. tostring(max) .. " studs"
-    valText.TextColor3 = theme.Pink
+    valText.TextColor3 = theme.Cyan
     valText.TextSize = 11
     valText.Font = Enum.Font.GothamBold
     valText.TextXAlignment = Enum.TextXAlignment.Right
@@ -723,7 +824,7 @@ function Section:CreateSlider(name, min, max, default, callback)
     local fill = Instance.new("Frame")
     local pct = (slider.Value - min) / (max - min)
     fill.Size = UDim2.new(pct, 0, 1, 0)
-    fill.BackgroundColor3 = theme.Pink
+    fill.BackgroundColor3 = theme.Cyan
     fill.BorderSizePixel = 0
     fill.Parent = track
     
@@ -802,7 +903,7 @@ function Section:CreateDropdown(name, list, default, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 24)
     btn.Position = UDim2.new(0, 0, 0, 20)
-    btn.BackgroundColor3 = Color3.fromRGB(28, 27, 33)
+    btn.BackgroundColor3 = theme.ElementBackground
     btn.Text = ""
     btn.BorderSizePixel = 0
     btn.Parent = frame
@@ -812,7 +913,7 @@ function Section:CreateDropdown(name, list, default, callback)
     btnCorner.Parent = btn
     
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(43, 42, 51)
+    stroke.Color = Color3.fromRGB(35, 40, 50)
     stroke.Thickness = 1
     stroke.Parent = btn
     
@@ -838,7 +939,7 @@ function Section:CreateDropdown(name, list, default, callback)
     local listFrame = Instance.new("Frame")
     listFrame.Size = UDim2.new(1, 0, 0, 0)
     listFrame.Position = UDim2.new(0, 0, 0, 44)
-    listFrame.BackgroundColor3 = Color3.fromRGB(23, 22, 27)
+    listFrame.BackgroundColor3 = Color3.fromRGB(20, 22, 28)
     listFrame.BorderSizePixel = 0
     listFrame.Visible = false
     listFrame.Parent = frame
@@ -860,7 +961,7 @@ function Section:CreateDropdown(name, list, default, callback)
             opt.Size = UDim2.new(1, 0, 0, 24)
             opt.BackgroundTransparency = 1
             opt.Text = item
-            opt.TextColor3 = (item == dropdown.Value) and theme.Pink or theme.Text
+            opt.TextColor3 = (item == dropdown.Value) and theme.Cyan or theme.Text
             opt.TextSize = 11
             opt.Font = Enum.Font.GothamMedium
             opt.Parent = listFrame
@@ -927,7 +1028,7 @@ function Section:CreateTextBox(name, placeholder, default, callback)
     local box = Instance.new("TextBox")
     box.Size = UDim2.new(1, 0, 0, 24)
     box.Position = UDim2.new(0, 0, 0, 20)
-    box.BackgroundColor3 = Color3.fromRGB(28, 27, 33)
+    box.BackgroundColor3 = theme.ElementBackground
     box.Text = default or ""
     box.PlaceholderText = placeholder or "Ketik di sini..."
     box.PlaceholderColor3 = theme.MutedText
@@ -941,15 +1042,15 @@ function Section:CreateTextBox(name, placeholder, default, callback)
     boxCorner.Parent = box
     
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(43, 42, 51)
+    stroke.Color = Color3.fromRGB(35, 40, 50)
     stroke.Thickness = 1
     stroke.Parent = box
     
     box.Focused:Connect(function()
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = theme.Pink}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = theme.Cyan}):Play()
     end)
     box.FocusLost:Connect(function(enterPressed)
-        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(43, 42, 51)}):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(35, 40, 50)}):Play()
         pcall(callback, box.Text)
     end)
     
@@ -974,7 +1075,7 @@ function Section:CreateButton(name, callback)
     
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 1, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(28, 27, 33)
+    btn.BackgroundColor3 = theme.ElementBackground
     btn.Text = name
     btn.TextColor3 = theme.Text
     btn.TextSize = 11
@@ -986,15 +1087,15 @@ function Section:CreateButton(name, callback)
     btnCorner.Parent = btn
     
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(43, 42, 51)
+    stroke.Color = Color3.fromRGB(35, 40, 50)
     stroke.Thickness = 1
     stroke.Parent = btn
     
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(38, 37, 45)}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(35, 40, 50)}):Play()
     end)
     btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(28, 27, 33)}):Play()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = theme.ElementBackground}):Play()
     end)
     btn.MouseButton1Click:Connect(function()
         pcall(callback)
@@ -1007,10 +1108,10 @@ end
 
 --- INSTANTIATE UI ---
 
-local UI = ChiyoUI.new("Chiyo Hub | Grow a Garden 2")
+local UI = ZeeHubUI.new("Zee-Hub | Grow a Garden 2")
 
--- Tab 1: Farms (Leaf Icon)
-local farmTab = UI:CreateTab("Farms", "rbxassetid://4483345998")
+-- Tab 1: Auto Farm (Compass Icon)
+local farmTab = UI:CreateTab("Auto Farm", "rbxassetid://10747372704")
 
 -- Left Column Sections
 local plantingSection = farmTab:CreateSection("Planting", "rbxassetid://4483345998", "Left")
@@ -1176,7 +1277,7 @@ shopSec:CreateToggle("Auto Buy Seeds", getgenv().Config.AutoBuySeed, function(va
     getgenv().Config.AutoBuySeed = val
 end)
 shopSec:CreateToggle("Auto Buy Watering Cans", false, function(val)
-    print("[Chiyo Hub] Auto Buy Watering Cans toggled: ", val)
+    print("[Zee-Hub] Auto Buy Watering Cans toggled: ", val)
 end)
 
 -- Tab 3: Eggs (Egg Icon)
@@ -1233,4 +1334,5 @@ task.spawn(function()
             task.wait(0.2) 
         end
     end
-end)
+end)
+
